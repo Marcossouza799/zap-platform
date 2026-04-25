@@ -1,6 +1,7 @@
 import { trpc } from "@/lib/trpc";
 import { useState } from "react";
 import { toast } from "sonner";
+import ImportContactsModal from "@/components/ImportContactsModal";
 
 const TAG_COLORS: Record<string, string> = {
   cliente: "zap-tag-green",
@@ -26,6 +27,7 @@ export default function Contacts() {
   const [newPhone, setNewPhone] = useState("");
   const [newTags, setNewTags] = useState("");
   const [editing, setEditing] = useState<EditingContact>(null);
+  const [showImport, setShowImport] = useState(false);
 
   const utils = trpc.useUtils();
   const contactsQuery = trpc.contacts.list.useQuery();
@@ -72,7 +74,16 @@ export default function Contacts() {
               onChange={e => setSearch(e.target.value)}
             />
           </div>
-          <button className="zap-btn" onClick={() => setShowAdd(true)}>+ Novo contato</button>
+          <div style={{ display: "flex", gap: 6 }}>
+            <button
+              className="zap-btn-outline"
+              onClick={() => setShowImport(true)}
+              style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11 }}
+            >
+              ↑ Importar CSV/Excel
+            </button>
+            <button className="zap-btn" onClick={() => setShowAdd(true)}>+ Novo contato</button>
+          </div>
         </div>
 
         {/* Add modal */}
@@ -217,6 +228,16 @@ export default function Contacts() {
           Exibindo {contacts.length} contatos
         </div>
       </div>
+
+      {showImport && (
+        <ImportContactsModal
+          onClose={() => setShowImport(false)}
+          onSuccess={() => {
+            utils.contacts.list.invalidate();
+            setShowImport(false);
+          }}
+        />
+      )}
     </>
   );
 }

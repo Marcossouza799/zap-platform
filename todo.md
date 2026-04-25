@@ -28,3 +28,16 @@
 - [x] Auto/manual AI mode toggle in chat
 - [x] Verify flow_nodes and kanban_cards tables exist in DB
 - [x] Conversion rate metric on dashboard
+
+## Importação em Massa de Contatos
+
+- [x] Instalar dependência papaparse (CSV) e xlsx (Excel) no servidor
+- [x] Endpoint tRPC: contacts.importPreview — recebe arquivo base64, retorna linhas parseadas + colunas detectadas
+- [x] Endpoint tRPC: contacts.importConfirm — recebe mapeamento de colunas + linhas, insere no banco em lote
+- [x] Modal de importação na página Contatos com 3 etapas: Upload → Mapeamento → Confirmação
+- [x] Etapa 1: drag-and-drop de arquivo CSV/XLSX com preview do nome e contagem de linhas
+- [x] Etapa 2: mapeamento visual de colunas do arquivo para campos do contato (nome, telefone, tags, email)
+- [x] Etapa 3: preview das primeiras 5 linhas mapeadas + botão "Importar X contatos"
+- [x] Feedback de progresso e resultado (X importados, Y duplicados ignorados)
+- [x] Template CSV para download
+- [x] Vitest tests para o endpoint de importação

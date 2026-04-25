@@ -1,4 +1,4 @@
-import { eq, and, desc, asc, sql } from "drizzle-orm";
+import { eq, desc, asc, and, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import {
   InsertUser, users,
@@ -67,11 +67,18 @@ export async function getFlows(userId: number) {
   return db.select().from(flows).where(eq(flows.userId, userId)).orderBy(desc(flows.updatedAt));
 }
 
+export async function getFlowById(id: number, userId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(flows).where(and(eq(flows.id, id), eq(flows.userId, userId))).limit(1);
+  return result[0];
+}
+
 export async function createFlow(data: InsertFlow) {
   const db = await getDb();
   if (!db) throw new Error("DB not available");
   const result = await db.insert(flows).values(data);
-  return { id: result[0].insertId };
+  return { id: result[0].insertId, ...data };
 }
 
 export async function updateFlow(id: number, userId: number, data: Partial<InsertFlow>) {
@@ -83,16 +90,9 @@ export async function updateFlow(id: number, userId: number, data: Partial<Inser
 export async function deleteFlow(id: number, userId: number) {
   const db = await getDb();
   if (!db) throw new Error("DB not available");
-  await db.delete(flowEdges).where(eq(flowEdges.flowId, id));
   await db.delete(flowNodes).where(eq(flowNodes.flowId, id));
+  await db.delete(flowEdges).where(eq(flowEdges.flowId, id));
   await db.delete(flows).where(and(eq(flows.id, id), eq(flows.userId, userId)));
-}
-
-export async function getFlowById(id: number, userId: number) {
-  const db = await getDb();
-  if (!db) return null;
-  const result = await db.select().from(flows).where(and(eq(flows.id, id), eq(flows.userId, userId))).limit(1);
-  return result[0] || null;
 }
 
 // ---- Flow Nodes ----
@@ -153,6 +153,50 @@ export async function deleteContact(id: number, userId: number) {
   await db.delete(contacts).where(and(eq(contacts.id, id), eq(contacts.userId, userId)));
 }
 
+/**
+ * Bulk-insert contacts, skipping duplicates by phone number.
+ * Returns { inserted, skipped } counts.
+ */
+export async function bulkCreateContacts(
+  userId: number,
+  rows: Array<{ name: string; phone: string; tags: string[]; email?: string }>
+): Promise<{ inserted: number; skipped: number }> {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+
+  // Fetch existing phones for this user to detect duplicates
+  const existing = await db
+    .select({ phone: contacts.phone })
+    .from(contacts)
+    .where(eq(contacts.userId, userId));
+  const existingPhones = new Set(existing.map((r) => r.phone.trim()));
+
+  const toInsert = rows.filter(
+    (r) => r.phone && !existingPhones.has(r.phone.trim())
+  );
+  const skipped = rows.length - toInsert.length;
+
+  if (toInsert.length === 0) {
+    return { inserted: 0, skipped };
+  }
+
+  // Insert in batches of 100 to avoid query size limits
+  const BATCH = 100;
+  for (let i = 0; i < toInsert.length; i += BATCH) {
+    const batch = toInsert.slice(i, i + BATCH).map((r) => ({
+      userId,
+      name: r.name || r.phone,
+      phone: r.phone,
+      tags: r.tags,
+      status: "active" as const,
+      currentFlow: "",
+    }));
+    await db.insert(contacts).values(batch);
+  }
+
+  return { inserted: toInsert.length, skipped };
+}
+
 // ---- Messages ----
 export async function getMessages(userId: number, contactId?: number) {
   const db = await getDb();
@@ -175,37 +219,24 @@ export async function clearMessages(userId: number) {
   await db.delete(messages).where(eq(messages.userId, userId));
 }
 
-// ---- Kanban Columns ----
-export async function getKanbanColumns(userId: number) {
-  const db = await getDb();
-  if (!db) return [];
-  return db.select().from(kanbanColumns).where(eq(kanbanColumns.userId, userId)).orderBy(asc(kanbanColumns.position));
-}
-
-export async function createKanbanColumn(data: InsertKanbanColumn) {
-  const db = await getDb();
-  if (!db) throw new Error("DB not available");
-  const result = await db.insert(kanbanColumns).values(data);
-  return { id: result[0].insertId };
-}
-
+// ---- Kanban ----
 export async function initDefaultKanbanColumns(userId: number) {
   const db = await getDb();
-  if (!db) throw new Error("DB not available");
-  const existing = await getKanbanColumns(userId);
+  if (!db) return [];
+  const existing = await db.select().from(kanbanColumns).where(eq(kanbanColumns.userId, userId));
   if (existing.length > 0) return existing;
-  const defaults = [
+
+  const defaults: InsertKanbanColumn[] = [
     { userId, title: "Novo Lead", color: "#378add", position: 0 },
-    { userId, title: "Qualificado", color: "#ef9f27", position: 1 },
-    { userId, title: "Proposta", color: "#7f77dd", position: 2 },
-    { userId, title: "Fechado", color: "#25d366", position: 3 },
-    { userId, title: "Perdido", color: "#e24b4a", position: 4 },
+    { userId, title: "Qualificado", color: "#25d366", position: 1 },
+    { userId, title: "Proposta", color: "#ef9f27", position: 2 },
+    { userId, title: "Fechado", color: "#a855f7", position: 3 },
+    { userId, title: "Perdido", color: "#ef4444", position: 4 },
   ];
   await db.insert(kanbanColumns).values(defaults);
-  return getKanbanColumns(userId);
+  return db.select().from(kanbanColumns).where(eq(kanbanColumns.userId, userId));
 }
 
-// ---- Kanban Cards ----
 export async function getKanbanCards(userId: number) {
   const db = await getDb();
   if (!db) return [];

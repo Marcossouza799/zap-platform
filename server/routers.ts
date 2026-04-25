@@ -5,6 +5,7 @@ import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import { z } from "zod";
 import * as db from "./db";
 import { invokeLLM } from "./_core/llm";
+import { parseImportFile, applyMapping } from "./importParser";
 
 export const appRouter = router({
   system: systemRouter,
@@ -122,6 +123,42 @@ export const appRouter = router({
     delete: protectedProcedure.input(z.object({ id: z.number() })).mutation(async ({ ctx, input }) => {
       await db.deleteContact(input.id, ctx.user.id);
       return { success: true };
+    }),
+
+    // --- Import: step 1 — parse file and return columns + preview rows ---
+    importPreview: protectedProcedure.input(z.object({
+      fileBase64: z.string(),
+      mimeType: z.string(),
+    })).mutation(async ({ input }) => {
+      const result = parseImportFile(input.fileBase64, input.mimeType);
+      return {
+        columns: result.columns,
+        previewRows: result.rows.slice(0, 5),
+        totalRows: result.totalRows,
+        errors: result.errors,
+        // all rows needed for confirm step (capped at 5000)
+        allRows: result.rows.slice(0, 5000),
+      };
+    }),
+
+    // --- Import: step 2 — apply mapping and bulk-insert contacts ---
+    importConfirm: protectedProcedure.input(z.object({
+      rows: z.array(z.record(z.string(), z.string())),
+      mapping: z.object({
+        nome: z.string(),
+        telefone: z.string(),
+        tags: z.string().optional().default(""),
+        email: z.string().optional().default(""),
+      }),
+    })).mutation(async ({ ctx, input }) => {
+      const mapped = applyMapping(input.rows, {
+        nome: input.mapping.nome,
+        telefone: input.mapping.telefone,
+        tags: input.mapping.tags ?? "",
+        email: input.mapping.email ?? "",
+      });
+      const result = await db.bulkCreateContacts(ctx.user.id, mapped);
+      return result;
     }),
   }),
 
