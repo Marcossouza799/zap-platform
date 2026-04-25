@@ -41,3 +41,16 @@
 - [x] Feedback de progresso e resultado (X importados, Y duplicados ignorados)
 - [x] Template CSV para download
 - [x] Vitest tests para o endpoint de importação
+
+## Segmentação por Tags no Disparo de Fluxos
+
+- [x] Schema: tabela flow_dispatches para registrar histórico de disparos (flowId, tags, totalContacts, status, createdAt)
+- [x] Backend: endpoint flows.getContactsByTags — retorna contatos filtrados por array de tags (com contagem)
+- [x] Backend: endpoint flows.dispatch — registra disparo com tags selecionadas e retorna contatos afetados
+- [x] Backend: endpoint flows.getDispatches — lista histórico de disparos de um fluxo
+- [x] UI: modal "Disparar Fluxo" na FlowList com seletor de tags, preview de contatos afetados e confirmação
+- [x] UI: exibir todas as tags únicas dos contatos do usuário no seletor (carregadas dinamicamente)
+- [x] UI: contador em tempo real de contatos que serão atingidos ao selecionar/desmarcar tags
+- [x] UI: opção "Todos os contatos" (sem filtro de tag) no modal de disparo
+- [x] UI: histórico de disparos por fluxo na FlowList (data, tags usadas, quantidade de contatos)
+- [x] Vitest tests para getContactsByTags e flows.dispatch

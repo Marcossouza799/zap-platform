@@ -115,3 +115,19 @@ export const kanbanCards = mysqlTable("kanban_cards", {
 
 export type KanbanCard = typeof kanbanCards.$inferSelect;
 export type InsertKanbanCard = typeof kanbanCards.$inferInsert;
+
+// Flow Dispatches — records each time a flow is triggered against a segment
+export const flowDispatches = mysqlTable("flow_dispatches", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  flowId: int("flowId").notNull(),
+  flowName: varchar("flowName", { length: 255 }).notNull(),
+  /** JSON array of tag strings used as filter; empty array = all contacts */
+  tags: json("tags").$type<string[]>().default([]),
+  totalContacts: int("totalContacts").notNull().default(0),
+  status: mysqlEnum("status", ["pending", "running", "done", "failed"]).default("done").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type FlowDispatch = typeof flowDispatches.$inferSelect;
+export type InsertFlowDispatch = typeof flowDispatches.$inferInsert;

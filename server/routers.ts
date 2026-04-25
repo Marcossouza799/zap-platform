@@ -92,6 +92,60 @@ export const appRouter = router({
       await db.saveFlowEdges(input.flowId, input.edges.map(e => ({ ...e, flowId: input.flowId })));
       return { success: true };
     }),
+
+    // --- Segmentation: list all unique tags from user contacts ---
+    getContactTags: protectedProcedure.query(async ({ ctx }) => {
+      return db.getContactTags(ctx.user.id);
+    }),
+
+    // --- Segmentation: preview contacts matching selected tags ---
+    previewSegment: protectedProcedure
+      .input(z.object({ tags: z.array(z.string()) }))
+      .mutation(async ({ ctx, input }) => {
+        const matched = await db.getContactsByTags(ctx.user.id, input.tags);
+        return {
+          total: matched.length,
+          preview: matched.slice(0, 8).map(c => ({ id: c.id, name: c.name, phone: c.phone, tags: c.tags })),
+        };
+      }),
+
+    // --- Segmentation: confirm and record a dispatch ---
+    dispatch: protectedProcedure
+      .input(z.object({
+        flowId: z.number(),
+        tags: z.array(z.string()),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const flow = await db.getFlowById(input.flowId, ctx.user.id);
+        if (!flow) throw new Error("Fluxo não encontrado");
+        const matched = await db.getContactsByTags(ctx.user.id, input.tags);
+        await db.createDispatch({
+          userId: ctx.user.id,
+          flowId: flow.id,
+          flowName: flow.name,
+          tags: input.tags,
+          totalContacts: matched.length,
+          status: "done",
+        });
+        // Mark matched contacts as running this flow
+        // (best-effort: update currentFlow field)
+        for (const c of matched) {
+          await db.updateContact(c.id, ctx.user.id, { currentFlow: flow.name });
+        }
+        return { dispatched: matched.length, flowName: flow.name };
+      }),
+
+    // --- Segmentation: history of dispatches for a flow ---
+    getDispatches: protectedProcedure
+      .input(z.object({ flowId: z.number() }))
+      .query(async ({ ctx, input }) => {
+        return db.getFlowDispatches(input.flowId, ctx.user.id);
+      }),
+
+    // --- Segmentation: all dispatches for the user (dashboard) ---
+    getAllDispatches: protectedProcedure.query(async ({ ctx }) => {
+      return db.getAllDispatches(ctx.user.id);
+    }),
   }),
 
   // ---- Contacts ----

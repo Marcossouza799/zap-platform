@@ -9,6 +9,7 @@ import {
   messages, InsertMessage,
   kanbanColumns, InsertKanbanColumn,
   kanbanCards, InsertKanbanCard,
+  flowDispatches, InsertFlowDispatch,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -260,6 +261,87 @@ export async function deleteKanbanCard(id: number, userId: number) {
   const db = await getDb();
   if (!db) throw new Error("DB not available");
   await db.delete(kanbanCards).where(and(eq(kanbanCards.id, id), eq(kanbanCards.userId, userId)));
+}
+
+// ---- Flow Dispatches ----
+
+/**
+ * Returns all unique tags used across a user's contacts.
+ */
+export async function getContactTags(userId: number): Promise<string[]> {
+  const db = await getDb();
+  if (!db) return [];
+  const rows = await db.select({ tags: contacts.tags }).from(contacts).where(eq(contacts.userId, userId));
+  const tagSet = new Set<string>();
+  for (const row of rows) {
+    const tags = Array.isArray(row.tags) ? row.tags : [];
+    for (const t of tags) if (t) tagSet.add(t.toLowerCase().trim());
+  }
+  return Array.from(tagSet).sort();
+}
+
+/**
+ * Returns contacts for a user, optionally filtered by tags (OR logic).
+ * Empty tags array = all contacts.
+ */
+export async function getContactsByTags(
+  userId: number,
+  tags: string[]
+): Promise<Array<{ id: number; name: string; phone: string; tags: string[] }>> {
+  const db = await getDb();
+  if (!db) return [];
+  const rows = await db
+    .select({ id: contacts.id, name: contacts.name, phone: contacts.phone, tags: contacts.tags })
+    .from(contacts)
+    .where(eq(contacts.userId, userId));
+
+  if (tags.length === 0) return rows.map(r => ({ ...r, tags: Array.isArray(r.tags) ? r.tags : [] }));
+
+  const lowerTags = tags.map(t => t.toLowerCase().trim());
+  return rows
+    .filter(r => {
+      const contactTags = (Array.isArray(r.tags) ? r.tags : []).map((t: string) => t.toLowerCase().trim());
+      return lowerTags.some(tag => contactTags.includes(tag));
+    })
+    .map(r => ({ ...r, tags: Array.isArray(r.tags) ? r.tags : [] }));
+}
+
+/**
+ * Records a dispatch event and returns the inserted id.
+ */
+export async function createDispatch(data: InsertFlowDispatch): Promise<{ id: number }> {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  const result = await db.insert(flowDispatches).values(data);
+  return { id: result[0].insertId };
+}
+
+/**
+ * Returns dispatch history for a specific flow, newest first.
+ */
+export async function getFlowDispatches(flowId: number, userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(flowDispatches)
+    .where(and(eq(flowDispatches.flowId, flowId), eq(flowDispatches.userId, userId)))
+    .orderBy(desc(flowDispatches.createdAt))
+    .limit(20);
+}
+
+/**
+ * Returns all dispatches for a user, newest first (for the overview list).
+ */
+export async function getAllDispatches(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(flowDispatches)
+    .where(eq(flowDispatches.userId, userId))
+    .orderBy(desc(flowDispatches.createdAt))
+    .limit(50);
 }
 
 // ---- Dashboard Stats ----
