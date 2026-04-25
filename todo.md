@@ -1,0 +1,30 @@
+# Project TODO
+
+- [x] Database schema: flows, flow_nodes, flow_edges, contacts, messages, kanban_columns, kanban_cards
+- [x] Dark mode design system matching prototype (#080b0e bg, #25d366 accent, compact typography)
+- [x] Sidebar navigation with icon-only layout (Dashboard, Inbox, Contacts, Flows, Kanban, Settings)
+- [x] Dashboard with real-time metrics (contacts, messages, active conversations, active flows)
+- [x] Dashboard recent conversations list
+- [x] Dashboard active flows list
+- [x] Dashboard pipeline progress bars
+- [x] Contacts page with table, search, status, tags
+- [x] Add contact modal
+- [x] Kanban board with configurable columns (Novo Lead, Qualificado, Proposta, Fechado, Perdido)
+- [x] Kanban drag-and-drop cards between columns
+- [x] Add kanban card modal
+- [x] Flow builder: visual canvas with drag-and-drop nodes
+- [x] Flow builder: node palette (trigger, text, audio, image, video, delay, wait, identify, buttons, pix, connect, ai)
+- [x] Flow builder: edge connections between nodes via ports
+- [x] Flow builder: node configuration panel with dynamic forms per node type
+- [x] Flow management: create, rename, duplicate, delete flows
+- [x] Flow management: list saved flows with status
+- [x] Chat simulation with AI integration via LLM helper
+- [x] Chat message history persistence
+- [x] Settings page with WhatsApp and AI config sections
+- [x] Authentication with login gate in AppLayout
+- [x] All data persisted per user in database
+- [x] Vitest tests for router structure and auth
+- [x] Edit contact modal
+- [x] Auto/manual AI mode toggle in chat
+- [x] Verify flow_nodes and kanban_cards tables exist in DB
+- [x] Conversion rate metric on dashboard

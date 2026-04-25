@@ -1,11 +1,19 @@
-import { eq } from "drizzle-orm";
+import { eq, and, desc, asc, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users } from "../drizzle/schema";
+import {
+  InsertUser, users,
+  flows, InsertFlow,
+  flowNodes, InsertFlowNode,
+  flowEdges, InsertFlowEdge,
+  contacts, InsertContact,
+  messages, InsertMessage,
+  kanbanColumns, InsertKanbanColumn,
+  kanbanCards, InsertKanbanCard,
+} from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
-// Lazily create the drizzle instance so local tooling can run without a DB.
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
     try {
@@ -18,26 +26,16 @@ export async function getDb() {
   return _db;
 }
 
+// ---- Users ----
 export async function upsertUser(user: InsertUser): Promise<void> {
-  if (!user.openId) {
-    throw new Error("User openId is required for upsert");
-  }
-
+  if (!user.openId) throw new Error("User openId is required for upsert");
   const db = await getDb();
-  if (!db) {
-    console.warn("[Database] Cannot upsert user: database not available");
-    return;
-  }
-
+  if (!db) { console.warn("[Database] Cannot upsert user: database not available"); return; }
   try {
-    const values: InsertUser = {
-      openId: user.openId,
-    };
+    const values: InsertUser = { openId: user.openId };
     const updateSet: Record<string, unknown> = {};
-
     const textFields = ["name", "email", "loginMethod"] as const;
     type TextField = (typeof textFields)[number];
-
     const assignNullable = (field: TextField) => {
       const value = user[field];
       if (value === undefined) return;
@@ -45,48 +43,210 @@ export async function upsertUser(user: InsertUser): Promise<void> {
       values[field] = normalized;
       updateSet[field] = normalized;
     };
-
     textFields.forEach(assignNullable);
-
-    if (user.lastSignedIn !== undefined) {
-      values.lastSignedIn = user.lastSignedIn;
-      updateSet.lastSignedIn = user.lastSignedIn;
-    }
-    if (user.role !== undefined) {
-      values.role = user.role;
-      updateSet.role = user.role;
-    } else if (user.openId === ENV.ownerOpenId) {
-      values.role = 'admin';
-      updateSet.role = 'admin';
-    }
-
-    if (!values.lastSignedIn) {
-      values.lastSignedIn = new Date();
-    }
-
-    if (Object.keys(updateSet).length === 0) {
-      updateSet.lastSignedIn = new Date();
-    }
-
-    await db.insert(users).values(values).onDuplicateKeyUpdate({
-      set: updateSet,
-    });
-  } catch (error) {
-    console.error("[Database] Failed to upsert user:", error);
-    throw error;
-  }
+    if (user.lastSignedIn !== undefined) { values.lastSignedIn = user.lastSignedIn; updateSet.lastSignedIn = user.lastSignedIn; }
+    if (user.role !== undefined) { values.role = user.role; updateSet.role = user.role; }
+    else if (user.openId === ENV.ownerOpenId) { values.role = 'admin'; updateSet.role = 'admin'; }
+    if (!values.lastSignedIn) values.lastSignedIn = new Date();
+    if (Object.keys(updateSet).length === 0) updateSet.lastSignedIn = new Date();
+    await db.insert(users).values(values).onDuplicateKeyUpdate({ set: updateSet });
+  } catch (error) { console.error("[Database] Failed to upsert user:", error); throw error; }
 }
 
 export async function getUserByOpenId(openId: string) {
   const db = await getDb();
-  if (!db) {
-    console.warn("[Database] Cannot get user: database not available");
-    return undefined;
-  }
-
+  if (!db) return undefined;
   const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
-
   return result.length > 0 ? result[0] : undefined;
 }
 
-// TODO: add feature queries here as your schema grows.
+// ---- Flows ----
+export async function getFlows(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(flows).where(eq(flows.userId, userId)).orderBy(desc(flows.updatedAt));
+}
+
+export async function createFlow(data: InsertFlow) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  const result = await db.insert(flows).values(data);
+  return { id: result[0].insertId };
+}
+
+export async function updateFlow(id: number, userId: number, data: Partial<InsertFlow>) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  await db.update(flows).set(data).where(and(eq(flows.id, id), eq(flows.userId, userId)));
+}
+
+export async function deleteFlow(id: number, userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  await db.delete(flowEdges).where(eq(flowEdges.flowId, id));
+  await db.delete(flowNodes).where(eq(flowNodes.flowId, id));
+  await db.delete(flows).where(and(eq(flows.id, id), eq(flows.userId, userId)));
+}
+
+export async function getFlowById(id: number, userId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(flows).where(and(eq(flows.id, id), eq(flows.userId, userId))).limit(1);
+  return result[0] || null;
+}
+
+// ---- Flow Nodes ----
+export async function getFlowNodes(flowId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(flowNodes).where(eq(flowNodes.flowId, flowId));
+}
+
+export async function saveFlowNodes(flowId: number, nodes: InsertFlowNode[]) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  await db.delete(flowNodes).where(eq(flowNodes.flowId, flowId));
+  if (nodes.length > 0) {
+    await db.insert(flowNodes).values(nodes);
+  }
+}
+
+// ---- Flow Edges ----
+export async function getFlowEdges(flowId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(flowEdges).where(eq(flowEdges.flowId, flowId));
+}
+
+export async function saveFlowEdges(flowId: number, edges: InsertFlowEdge[]) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  await db.delete(flowEdges).where(eq(flowEdges.flowId, flowId));
+  if (edges.length > 0) {
+    await db.insert(flowEdges).values(edges);
+  }
+}
+
+// ---- Contacts ----
+export async function getContacts(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(contacts).where(eq(contacts.userId, userId)).orderBy(desc(contacts.updatedAt));
+}
+
+export async function createContact(data: InsertContact) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  const result = await db.insert(contacts).values(data);
+  return { id: result[0].insertId };
+}
+
+export async function updateContact(id: number, userId: number, data: Partial<InsertContact>) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  await db.update(contacts).set(data).where(and(eq(contacts.id, id), eq(contacts.userId, userId)));
+}
+
+export async function deleteContact(id: number, userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  await db.delete(contacts).where(and(eq(contacts.id, id), eq(contacts.userId, userId)));
+}
+
+// ---- Messages ----
+export async function getMessages(userId: number, contactId?: number) {
+  const db = await getDb();
+  if (!db) return [];
+  const conditions = [eq(messages.userId, userId)];
+  if (contactId) conditions.push(eq(messages.contactId, contactId));
+  return db.select().from(messages).where(and(...conditions)).orderBy(asc(messages.createdAt));
+}
+
+export async function createMessage(data: InsertMessage) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  const result = await db.insert(messages).values(data);
+  return { id: result[0].insertId };
+}
+
+export async function clearMessages(userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  await db.delete(messages).where(eq(messages.userId, userId));
+}
+
+// ---- Kanban Columns ----
+export async function getKanbanColumns(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(kanbanColumns).where(eq(kanbanColumns.userId, userId)).orderBy(asc(kanbanColumns.position));
+}
+
+export async function createKanbanColumn(data: InsertKanbanColumn) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  const result = await db.insert(kanbanColumns).values(data);
+  return { id: result[0].insertId };
+}
+
+export async function initDefaultKanbanColumns(userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  const existing = await getKanbanColumns(userId);
+  if (existing.length > 0) return existing;
+  const defaults = [
+    { userId, title: "Novo Lead", color: "#378add", position: 0 },
+    { userId, title: "Qualificado", color: "#ef9f27", position: 1 },
+    { userId, title: "Proposta", color: "#7f77dd", position: 2 },
+    { userId, title: "Fechado", color: "#25d366", position: 3 },
+    { userId, title: "Perdido", color: "#e24b4a", position: 4 },
+  ];
+  await db.insert(kanbanColumns).values(defaults);
+  return getKanbanColumns(userId);
+}
+
+// ---- Kanban Cards ----
+export async function getKanbanCards(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(kanbanCards).where(eq(kanbanCards.userId, userId)).orderBy(asc(kanbanCards.position));
+}
+
+export async function createKanbanCard(data: InsertKanbanCard) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  const result = await db.insert(kanbanCards).values(data);
+  return { id: result[0].insertId };
+}
+
+export async function updateKanbanCard(id: number, userId: number, data: Partial<InsertKanbanCard>) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  await db.update(kanbanCards).set(data).where(and(eq(kanbanCards.id, id), eq(kanbanCards.userId, userId)));
+}
+
+export async function deleteKanbanCard(id: number, userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  await db.delete(kanbanCards).where(and(eq(kanbanCards.id, id), eq(kanbanCards.userId, userId)));
+}
+
+// ---- Dashboard Stats ----
+export async function getDashboardStats(userId: number) {
+  const db = await getDb();
+  if (!db) return { totalContacts: 0, totalMessages: 0, activeFlows: 0, activeConversations: 0, conversionRate: 0 };
+  const [contactCount] = await db.select({ count: sql<number>`count(*)` }).from(contacts).where(eq(contacts.userId, userId));
+  const [messageCount] = await db.select({ count: sql<number>`count(*)` }).from(messages).where(eq(messages.userId, userId));
+  const [flowCount] = await db.select({ count: sql<number>`count(*)` }).from(flows).where(and(eq(flows.userId, userId), eq(flows.status, "active")));
+  const [activeCount] = await db.select({ count: sql<number>`count(*)` }).from(contacts).where(and(eq(contacts.userId, userId), eq(contacts.status, "active")));
+  const total = contactCount?.count ?? 0;
+  const active = activeCount?.count ?? 0;
+  const conversionRate = total > 0 ? Math.round((active / total) * 100) : 0;
+  return {
+    totalContacts: total,
+    totalMessages: messageCount?.count ?? 0,
+    activeFlows: flowCount?.count ?? 0,
+    activeConversations: active,
+    conversionRate,
+  };
+}

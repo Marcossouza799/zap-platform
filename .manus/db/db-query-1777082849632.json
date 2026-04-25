@@ -1,0 +1,34 @@
+{
+  "query": "SHOW TABLES;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway05.us-east-1.prod.aws.tidbcloud.com --port 4000 --user kar6ha6JbcE4aYg.root --database U99xhnpstbGe6JQ9Zeas4L --execute SHOW TABLES;",
+  "rows": [
+    {
+      "Tables_in_U99xhnpstbGe6JQ9Zeas4L": "__drizzle_migrations"
+    },
+    {
+      "Tables_in_U99xhnpstbGe6JQ9Zeas4L": "flow_edges"
+    },
+    {
+      "Tables_in_U99xhnpstbGe6JQ9Zeas4L": "flow_nodes"
+    },
+    {
+      "Tables_in_U99xhnpstbGe6JQ9Zeas4L": "flows"
+    },
+    {
+      "Tables_in_U99xhnpstbGe6JQ9Zeas4L": "kanban_cards"
+    },
+    {
+      "Tables_in_U99xhnpstbGe6JQ9Zeas4L": "kanban_columns"
+    },
+    {
+      "Tables_in_U99xhnpstbGe6JQ9Zeas4L": "messages"
+    },
+    {
+      "Tables_in_U99xhnpstbGe6JQ9Zeas4L": "users"
+    }
+  ],
+  "messages": [],
+  "stdout": "Tables_in_U99xhnpstbGe6JQ9Zeas4L\n__drizzle_migrations\nflow_edges\nflow_nodes\nflows\nkanban_cards\nkanban_columns\nmessages\nusers\n",
+  "stderr": "",
+  "execution_time_ms": 349
+}

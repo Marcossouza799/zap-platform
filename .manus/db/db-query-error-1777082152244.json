@@ -1,0 +1,14 @@
+{
+  "query": "CREATE TABLE `contacts` (\n\t`id` int AUTO_INCREMENT NOT NULL,\n\t`userId` int NOT NULL,\n\t`name` varchar(255) NOT NULL,\n\t`phone` varchar(32) NOT NULL,\n\t`tags` json DEFAULT ('[]'),\n\t`status` enum('active','inactive','waiting') NOT NULL DEFAULT 'active',\n\t`currentFlow` varchar(255) DEFAULT '',\n\t`createdAt` timestamp NOT NULL DEFAULT (now()),\n\t`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,\n\tCONSTRAINT `contacts_id` PRIMARY KEY(`id`)\n);",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway05.us-east-1.prod.aws.tidbcloud.com --port 4000 --user kar6ha6JbcE4aYg.root --database U99xhnpstbGe6JQ9Zeas4L --execute CREATE TABLE `contacts` (\n\t`id` int AUTO_INCREMENT NOT NULL,\n\t`userId` int NOT NULL,\n\t`name` varchar(255) NOT NULL,\n\t`phone` varchar(32) NOT NULL,\n\t`tags` json DEFAULT ('[]'),\n\t`status` enum('active','inactive','waiting') NOT NULL DEFAULT 'active',\n\t`currentFlow` varchar(255) DEFAULT '',\n\t`createdAt` timestamp NOT NULL DEFAULT (now()),\n\t`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,\n\tCONSTRAINT `contacts_id` PRIMARY KEY(`id`)\n);",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1064 (42000) at line 1: You have an error in your SQL syntax; check the manual that corresponds to your TiDB version for the right syntax to use line 6 column 27 near \"'[]'),",
+    "\t`status` enum('active','inactive','waiting') NOT NULL DEFAULT 'active',",
+    "\t`currentFlow` varchar(255) DEFAULT '',",
+    "\t`createdAt` timestamp NOT NULL DEFAULT (now()),",
+    "\t`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,",
+    "\tCONSTRAINT `contacts_id` PRIMARY KEY(`id`)",
+    ")\""
+  ]
+}

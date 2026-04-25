@@ -1,0 +1,9 @@
+{
+  "query": "CREATE TABLE IF NOT EXISTS `flow_nodes` (\n\t`id` int AUTO_INCREMENT NOT NULL,\n\t`flowId` int NOT NULL,\n\t`nodeId` varchar(64) NOT NULL,\n\t`type` varchar(64) NOT NULL,\n\t`label` varchar(255) NOT NULL,\n\t`subtitle` varchar(255) DEFAULT '',\n\t`x` int NOT NULL DEFAULT 0,\n\t`y` int NOT NULL DEFAULT 0,\n\t`bgColor` varchar(32) DEFAULT '#091c34',\n\t`textColor` varchar(32) DEFAULT '#378add',\n\t`config` json,\n\tCONSTRAINT `flow_nodes_id` PRIMARY KEY(`id`)\n);",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway05.us-east-1.prod.aws.tidbcloud.com --port 4000 --user kar6ha6JbcE4aYg.root --database U99xhnpstbGe6JQ9Zeas4L --execute CREATE TABLE IF NOT EXISTS `flow_nodes` (\n\t`id` int AUTO_INCREMENT NOT NULL,\n\t`flowId` int NOT NULL,\n\t`nodeId` varchar(64) NOT NULL,\n\t`type` varchar(64) NOT NULL,\n\t`label` varchar(255) NOT NULL,\n\t`subtitle` varchar(255) DEFAULT '',\n\t`x` int NOT NULL DEFAULT 0,\n\t`y` int NOT NULL DEFAULT 0,\n\t`bgColor` varchar(32) DEFAULT '#091c34',\n\t`textColor` varchar(32) DEFAULT '#378add',\n\t`config` json,\n\tCONSTRAINT `flow_nodes_id` PRIMARY KEY(`id`)\n);",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 426
+}

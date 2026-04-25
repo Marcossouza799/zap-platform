@@ -1,17 +1,7 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
+import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, json, boolean } from "drizzle-orm/mysql-core";
 
-/**
- * Core user table backing auth flow.
- * Extend this file with additional tables as your product grows.
- * Columns use camelCase to match both database fields and generated types.
- */
 export const users = mysqlTable("users", {
-  /**
-   * Surrogate primary key. Auto-incremented numeric value managed by the database.
-   * Use this for relations between tables.
-   */
   id: int("id").autoincrement().primaryKey(),
-  /** Manus OAuth identifier (openId) returned from the OAuth callback. Unique per user. */
   openId: varchar("openId", { length: 64 }).notNull().unique(),
   name: text("name"),
   email: varchar("email", { length: 320 }),
@@ -25,4 +15,103 @@ export const users = mysqlTable("users", {
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 
-// TODO: Add your tables here
+// Flows
+export const flows = mysqlTable("flows", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  status: mysqlEnum("status", ["active", "paused", "draft"]).default("draft").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Flow = typeof flows.$inferSelect;
+export type InsertFlow = typeof flows.$inferInsert;
+
+// Flow Nodes
+export const flowNodes = mysqlTable("flow_nodes", {
+  id: int("id").autoincrement().primaryKey(),
+  flowId: int("flowId").notNull(),
+  nodeId: varchar("nodeId", { length: 64 }).notNull(),
+  type: varchar("type", { length: 64 }).notNull(),
+  label: varchar("label", { length: 255 }).notNull(),
+  subtitle: varchar("subtitle", { length: 255 }).default(""),
+  x: int("x").notNull().default(0),
+  y: int("y").notNull().default(0),
+  bgColor: varchar("bgColor", { length: 32 }).default("#091c34"),
+  textColor: varchar("textColor", { length: 32 }).default("#378add"),
+  config: json("config").$type<Record<string, unknown>>().default({}),
+});
+
+export type FlowNode = typeof flowNodes.$inferSelect;
+export type InsertFlowNode = typeof flowNodes.$inferInsert;
+
+// Flow Edges
+export const flowEdges = mysqlTable("flow_edges", {
+  id: int("id").autoincrement().primaryKey(),
+  flowId: int("flowId").notNull(),
+  edgeId: varchar("edgeId", { length: 64 }).notNull(),
+  sourceNodeId: varchar("sourceNodeId", { length: 64 }).notNull(),
+  targetNodeId: varchar("targetNodeId", { length: 64 }).notNull(),
+});
+
+export type FlowEdge = typeof flowEdges.$inferSelect;
+export type InsertFlowEdge = typeof flowEdges.$inferInsert;
+
+// Contacts
+export const contacts = mysqlTable("contacts", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  phone: varchar("phone", { length: 32 }).notNull(),
+  tags: json("tags").$type<string[]>().default([]),
+  status: mysqlEnum("status", ["active", "inactive", "waiting"]).default("active").notNull(),
+  currentFlow: varchar("currentFlow", { length: 255 }).default(""),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Contact = typeof contacts.$inferSelect;
+export type InsertContact = typeof contacts.$inferInsert;
+
+// Conversations / Messages
+export const messages = mysqlTable("messages", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  contactId: int("contactId"),
+  role: mysqlEnum("role", ["user", "assistant", "system"]).notNull(),
+  content: text("content").notNull(),
+  isAi: int("isAi").default(0),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type Message = typeof messages.$inferSelect;
+export type InsertMessage = typeof messages.$inferInsert;
+
+// Kanban Columns
+export const kanbanColumns = mysqlTable("kanban_columns", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  title: varchar("title", { length: 255 }).notNull(),
+  color: varchar("color", { length: 32 }).default("#378add"),
+  position: int("position").notNull().default(0),
+});
+
+export type KanbanColumn = typeof kanbanColumns.$inferSelect;
+export type InsertKanbanColumn = typeof kanbanColumns.$inferInsert;
+
+// Kanban Cards
+export const kanbanCards = mysqlTable("kanban_cards", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  columnId: int("columnId").notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  phone: varchar("phone", { length: 32 }).default(""),
+  tags: json("tags").$type<string[]>().default([]),
+  value: varchar("value", { length: 64 }).default(""),
+  position: int("position").notNull().default(0),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type KanbanCard = typeof kanbanCards.$inferSelect;
+export type InsertKanbanCard = typeof kanbanCards.$inferInsert;

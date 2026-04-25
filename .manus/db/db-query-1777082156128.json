@@ -1,0 +1,9 @@
+{
+  "query": "CREATE TABLE `flow_edges` (\n\t`id` int AUTO_INCREMENT NOT NULL,\n\t`flowId` int NOT NULL,\n\t`edgeId` varchar(64) NOT NULL,\n\t`sourceNodeId` varchar(64) NOT NULL,\n\t`targetNodeId` varchar(64) NOT NULL,\n\tCONSTRAINT `flow_edges_id` PRIMARY KEY(`id`)\n);",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway05.us-east-1.prod.aws.tidbcloud.com --port 4000 --user kar6ha6JbcE4aYg.root --database U99xhnpstbGe6JQ9Zeas4L --execute CREATE TABLE `flow_edges` (\n\t`id` int AUTO_INCREMENT NOT NULL,\n\t`flowId` int NOT NULL,\n\t`edgeId` varchar(64) NOT NULL,\n\t`sourceNodeId` varchar(64) NOT NULL,\n\t`targetNodeId` varchar(64) NOT NULL,\n\tCONSTRAINT `flow_edges_id` PRIMARY KEY(`id`)\n);",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 554
+}
