@@ -127,10 +127,21 @@ export const appRouter = router({
           totalContacts: matched.length,
           status: "done",
         });
-        // Mark matched contacts as running this flow
-        // (best-effort: update currentFlow field)
+        // Mark matched contacts as running this flow and register timeline event
         for (const c of matched) {
           await db.updateContact(c.id, ctx.user.id, { currentFlow: flow.name });
+          await db.createContactEvent({
+            contactId: c.id,
+            userId: ctx.user.id,
+            type: "flow",
+            title: `Fluxo disparado: ${flow.name}`,
+            description: `O fluxo "${flow.name}" foi disparado para este contato.`,
+            metadata: {
+              flowId: flow.id,
+              flowName: flow.name,
+              tags: input.tags,
+            },
+          }).catch(() => {});
         }
         return { dispatched: matched.length, flowName: flow.name };
       }),
@@ -160,7 +171,19 @@ export const appRouter = router({
       status: z.enum(["active", "inactive", "waiting"]).optional(),
       currentFlow: z.string().optional(),
     })).mutation(async ({ ctx, input }) => {
-      return db.createContact({ ...input, userId: ctx.user.id, tags: input.tags ?? [] });
+      const contact = await db.createContact({ ...input, userId: ctx.user.id, tags: input.tags ?? [] });
+      // Register 'created' event in timeline
+      if (contact?.id) {
+        await db.createContactEvent({
+          contactId: contact.id,
+          userId: ctx.user.id,
+          type: "created",
+          title: "Contato criado",
+          description: `${input.name} foi adicionado à plataforma.`,
+          metadata: { phone: input.phone, tags: input.tags ?? [] },
+        }).catch(() => {});
+      }
+      return contact;
     }),
     update: protectedProcedure.input(z.object({
       id: z.number(),
@@ -172,6 +195,29 @@ export const appRouter = router({
     })).mutation(async ({ ctx, input }) => {
       const { id, ...data } = input;
       await db.updateContact(id, ctx.user.id, data);
+      // Register tag event if tags were updated
+      if (input.tags !== undefined) {
+        await db.createContactEvent({
+          contactId: id,
+          userId: ctx.user.id,
+          type: "tag",
+          title: "Tags atualizadas",
+          description: input.tags.length > 0 ? `Tags: ${input.tags.join(", ")}` : "Todas as tags foram removidas.",
+          metadata: { tags: input.tags },
+        }).catch(() => {});
+      }
+      // Register status event if status was updated
+      if (input.status !== undefined) {
+        const statusLabel: Record<string, string> = { active: "ativo", inactive: "inativo", waiting: "aguardando" };
+        await db.createContactEvent({
+          contactId: id,
+          userId: ctx.user.id,
+          type: "status",
+          title: "Status alterado",
+          description: `Status atualizado para "${statusLabel[input.status] ?? input.status}".`,
+          metadata: { newStatus: input.status },
+        }).catch(() => {});
+      }
       return { success: true };
     }),
     delete: protectedProcedure.input(z.object({ id: z.number() })).mutation(async ({ ctx, input }) => {
@@ -214,6 +260,31 @@ export const appRouter = router({
       const result = await db.bulkCreateContacts(ctx.user.id, mapped);
       return result;
     }),
+
+    // --- Contact Events: list timeline ---
+    getEvents: protectedProcedure
+      .input(z.object({ contactId: z.number() }))
+      .query(async ({ ctx, input }) => {
+        return db.getContactEvents(input.contactId, ctx.user.id);
+      }),
+
+    // --- Contact Events: add manual note ---
+    addNote: protectedProcedure
+      .input(z.object({
+        contactId: z.number(),
+        note: z.string().min(1).max(1000),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        await db.createContactEvent({
+          contactId: input.contactId,
+          userId: ctx.user.id,
+          type: "note",
+          title: "Nota adicionada",
+          description: input.note,
+          metadata: {},
+        });
+        return { success: true };
+      }),
   }),
 
   // ---- Messages / Chat ----
@@ -227,13 +298,27 @@ export const appRouter = router({
       contactId: z.number().optional(),
       isAi: z.boolean().optional(),
     })).mutation(async ({ ctx, input }) => {
-      return db.createMessage({
+      const msg = await db.createMessage({
         userId: ctx.user.id,
         content: input.content,
         role: input.role,
         contactId: input.contactId ?? null,
         isAi: input.isAi ? 1 : 0,
       });
+      // Register message event in contact timeline (if linked to a contact)
+      if (input.contactId) {
+        const eventType = input.role === "user" ? "message_in" : "message_out";
+        const eventTitle = input.role === "user" ? "Mensagem recebida" : (input.isAi ? "Resposta da IA" : "Mensagem enviada");
+        await db.createContactEvent({
+          contactId: input.contactId,
+          userId: ctx.user.id,
+          type: eventType,
+          title: eventTitle,
+          description: input.content.slice(0, 200),
+          metadata: { isAi: !!input.isAi },
+        }).catch(() => {});
+      }
+      return msg;
     }),
     aiReply: protectedProcedure.input(z.object({
       messages: z.array(z.object({

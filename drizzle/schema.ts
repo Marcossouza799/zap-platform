@@ -131,3 +131,29 @@ export const flowDispatches = mysqlTable("flow_dispatches", {
 
 export type FlowDispatch = typeof flowDispatches.$inferSelect;
 export type InsertFlowDispatch = typeof flowDispatches.$inferInsert;
+
+// Contact Events — timeline of interactions per contact
+export const contactEvents = mysqlTable("contact_events", {
+  id: int("id").autoincrement().primaryKey(),
+  contactId: int("contactId").notNull(),
+  userId: int("userId").notNull(),
+  /**
+   * Event types:
+   * - 'created'    : contact was added
+   * - 'flow'       : a flow was dispatched to this contact
+   * - 'message_in' : message received from contact (in chat simulation)
+   * - 'message_out': message sent to contact (AI or manual)
+   * - 'tag'        : tags were updated
+   * - 'note'       : manual note added by user
+   * - 'status'     : contact status changed
+   */
+  type: mysqlEnum("type", ["created", "flow", "message_in", "message_out", "tag", "note", "status"]).notNull(),
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description").default(""),
+  /** Extra data: flowName, tags[], oldStatus, newStatus, etc. */
+  metadata: json("metadata").$type<Record<string, unknown>>().default({}),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type ContactEvent = typeof contactEvents.$inferSelect;
+export type InsertContactEvent = typeof contactEvents.$inferInsert;

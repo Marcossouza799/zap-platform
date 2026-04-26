@@ -54,3 +54,19 @@
 - [x] UI: opção "Todos os contatos" (sem filtro de tag) no modal de disparo
 - [x] UI: histórico de disparos por fluxo na FlowList (data, tags usadas, quantidade de contatos)
 - [x] Vitest tests para getContactsByTags e flows.dispatch
+
+## Histórico de Interações por Contato
+
+- [x] Schema: tabela contact_events (contactId, userId, type, title, description, metadata, createdAt)
+- [x] Backend: helper getContactEvents(contactId, userId) — retorna eventos ordenados por data desc
+- [x] Backend: helper createContactEvent(data) — insere evento de interação
+- [x] Backend: endpoint contacts.getEvents — lista histórico de um contato
+- [x] Backend: endpoint contacts.addNote — adiciona nota manual ao histórico
+- [x] Integração: registrar evento ao disparar fluxo para um contato
+- [x] Integração: registrar evento ao enviar/receber mensagem no chat de simulação
+- [x] UI: drawer/painel lateral de perfil do contato com timeline de eventos
+- [x] UI: timeline com ícones por tipo de evento (fluxo, mensagem, nota, criação, tag)
+- [x] UI: botão "Ver histórico" em cada linha da tabela de Contatos
+- [x] UI: campo para adicionar nota manual no histórico
+- [x] UI: exibir metadados relevantes por tipo (nome do fluxo, conteúdo da mensagem, tags adicionadas)
+- [x] Vitest tests para getContactEvents e createContactEvent

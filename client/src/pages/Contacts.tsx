@@ -2,6 +2,8 @@ import { trpc } from "@/lib/trpc";
 import { useState } from "react";
 import { toast } from "sonner";
 import ImportContactsModal from "@/components/ImportContactsModal";
+import ContactHistoryDrawer from "@/components/ContactHistoryDrawer";
+import { History } from "lucide-react";
 
 const TAG_COLORS: Record<string, string> = {
   cliente: "zap-tag-green",
@@ -28,6 +30,7 @@ export default function Contacts() {
   const [newTags, setNewTags] = useState("");
   const [editing, setEditing] = useState<EditingContact>(null);
   const [showImport, setShowImport] = useState(false);
+  const [historyContact, setHistoryContact] = useState<any | null>(null);
 
   const utils = trpc.useUtils();
   const contactsQuery = trpc.contacts.list.useQuery();
@@ -212,6 +215,14 @@ export default function Contacts() {
                       </button>
                       <button
                         className="zap-btn-outline"
+                        style={{ fontSize: 9, padding: "2px 6px", display: "flex", alignItems: "center", gap: 3, color: "#378add", borderColor: "#0d2a4a" }}
+                        onClick={() => setHistoryContact(c)}
+                        title="Ver histórico de interações"
+                      >
+                        <History size={9} /> Histórico
+                      </button>
+                      <button
+                        className="zap-btn-outline"
                         style={{ fontSize: 9, padding: "2px 6px", color: "#e24b4a", borderColor: "#3a1010" }}
                         onClick={() => deleteContact.mutate({ id: c.id })}
                       >
@@ -236,6 +247,13 @@ export default function Contacts() {
             utils.contacts.list.invalidate();
             setShowImport(false);
           }}
+        />
+      )}
+
+      {historyContact && (
+        <ContactHistoryDrawer
+          contact={historyContact}
+          onClose={() => setHistoryContact(null)}
         />
       )}
     </>

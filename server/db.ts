@@ -10,6 +10,7 @@ import {
   kanbanColumns, InsertKanbanColumn,
   kanbanCards, InsertKanbanCard,
   flowDispatches, InsertFlowDispatch,
+  contactEvents, InsertContactEvent,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -342,6 +343,35 @@ export async function getAllDispatches(userId: number) {
     .where(eq(flowDispatches.userId, userId))
     .orderBy(desc(flowDispatches.createdAt))
     .limit(50);
+}
+
+// ---- Contact Events ----
+
+/**
+ * Insert a new event into the contact timeline.
+ */
+export async function createContactEvent(data: InsertContactEvent): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  await db.insert(contactEvents).values({
+    ...data,
+    description: data.description ?? null,
+    metadata: data.metadata ?? {},
+  });
+}
+
+/**
+ * Returns all events for a contact, newest first.
+ */
+export async function getContactEvents(contactId: number, userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(contactEvents)
+    .where(and(eq(contactEvents.contactId, contactId), eq(contactEvents.userId, userId)))
+    .orderBy(desc(contactEvents.createdAt))
+    .limit(100);
 }
 
 // ---- Dashboard Stats ----
