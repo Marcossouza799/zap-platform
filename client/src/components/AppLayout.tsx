@@ -10,6 +10,7 @@ import {
   Settings,
   LogOut,
   Loader2,
+  Smartphone,
 } from "lucide-react";
 import { ReactNode } from "react";
 import {
@@ -27,6 +28,7 @@ const navItems = [
 const navItems2 = [
   { icon: GitBranch, label: "Editor de Fluxos", path: "/app/flows" },
   { icon: Columns3, label: "CRM Kanban", path: "/app/kanban" },
+  { icon: Smartphone, label: "Conexões WhatsApp", path: "/app/connections" },
 ];
 
 const navItems3 = [

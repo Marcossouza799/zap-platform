@@ -11,6 +11,7 @@ import {
   kanbanCards, InsertKanbanCard,
   flowDispatches, InsertFlowDispatch,
   contactEvents, InsertContactEvent,
+  whatsappConnections, InsertWhatsappConnection,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -372,6 +373,49 @@ export async function getContactEvents(contactId: number, userId: number) {
     .where(and(eq(contactEvents.contactId, contactId), eq(contactEvents.userId, userId)))
     .orderBy(desc(contactEvents.createdAt))
     .limit(100);
+}
+
+// ---- WhatsApp Connections ----
+
+export async function getWhatsappConnections(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(whatsappConnections).where(eq(whatsappConnections.userId, userId));
+}
+
+export async function getWhatsappConnectionById(id: number, userId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const rows = await db.select().from(whatsappConnections)
+    .where(and(eq(whatsappConnections.id, id), eq(whatsappConnections.userId, userId)))
+    .limit(1);
+  return rows[0];
+}
+
+export async function createWhatsappConnection(data: InsertWhatsappConnection) {
+  const db = await getDb();
+  if (!db) throw new Error("DB unavailable");
+  const [result] = await db.insert(whatsappConnections).values(data);
+  return { id: (result as any).insertId as number };
+}
+
+export async function updateWhatsappConnection(
+  id: number,
+  userId: number,
+  data: Partial<Pick<InsertWhatsappConnection, "name" | "status" | "config" | "qrCode" | "phone">>
+) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(whatsappConnections)
+    .set(data)
+    .where(and(eq(whatsappConnections.id, id), eq(whatsappConnections.userId, userId)));
+}
+
+export async function deleteWhatsappConnection(id: number, userId: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.delete(whatsappConnections)
+    .where(and(eq(whatsappConnections.id, id), eq(whatsappConnections.userId, userId)));
 }
 
 // ---- Dashboard Stats ----

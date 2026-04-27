@@ -6,6 +6,13 @@ import { z } from "zod";
 import * as db from "./db";
 import { invokeLLM } from "./_core/llm";
 import { parseImportFile, applyMapping } from "./importParser";
+import {
+  testOfficialConnection,
+  createEvolutionInstance,
+  getEvolutionQrCode,
+  getEvolutionConnectionState,
+  disconnectEvolutionInstance,
+} from "./whatsapp";
 
 export const appRouter = router({
   system: systemRouter,
@@ -83,13 +90,14 @@ export const appRouter = router({
       edges: z.array(z.object({
         edgeId: z.string(),
         sourceNodeId: z.string(),
+        sourcePortId: z.string().optional(),
         targetNodeId: z.string(),
       })),
     })).mutation(async ({ ctx, input }) => {
       const flow = await db.getFlowById(input.flowId, ctx.user.id);
       if (!flow) throw new Error("Flow not found");
       await db.saveFlowNodes(input.flowId, input.nodes.map(n => ({ ...n, flowId: input.flowId, config: (n.config ?? {}) })));
-      await db.saveFlowEdges(input.flowId, input.edges.map(e => ({ ...e, flowId: input.flowId })));
+      await db.saveFlowEdges(input.flowId, input.edges.map(e => ({ ...e, sourcePortId: e.sourcePortId ?? 'out', flowId: input.flowId })));
       return { success: true };
     }),
 
@@ -383,6 +391,114 @@ export const appRouter = router({
     }),
     deleteCard: protectedProcedure.input(z.object({ id: z.number() })).mutation(async ({ ctx, input }) => {
       await db.deleteKanbanCard(input.id, ctx.user.id);
+      return { success: true };
+    }),
+  }),
+
+  // ---- WhatsApp Connections ----
+  connections: router({
+    list: protectedProcedure.query(async ({ ctx }) => {
+      return db.getWhatsappConnections(ctx.user.id);
+    }),
+
+    create: protectedProcedure.input(z.object({
+      name: z.string().min(1).max(100),
+      type: z.enum(["official", "unofficial"]),
+      config: z.record(z.string(), z.string()),
+    })).mutation(async ({ ctx, input }) => {
+      return db.createWhatsappConnection({
+        userId: ctx.user.id,
+        name: input.name,
+        type: input.type,
+        config: input.config,
+        status: "disconnected",
+        qrCode: "",
+        phone: "",
+      });
+    }),
+
+    update: protectedProcedure.input(z.object({
+      id: z.number(),
+      name: z.string().min(1).max(100).optional(),
+      config: z.record(z.string(), z.string()).optional(),
+    })).mutation(async ({ ctx, input }) => {
+      const { id, ...data } = input;
+      await db.updateWhatsappConnection(id, ctx.user.id, data);
+      return { success: true };
+    }),
+
+    delete: protectedProcedure.input(z.object({ id: z.number() })).mutation(async ({ ctx, input }) => {
+      await db.deleteWhatsappConnection(input.id, ctx.user.id);
+      return { success: true };
+    }),
+
+    // Test official connection (Meta Cloud API)
+    testOfficial: protectedProcedure.input(z.object({ id: z.number() })).mutation(async ({ ctx, input }) => {
+      const conn = await db.getWhatsappConnectionById(input.id, ctx.user.id);
+      if (!conn || conn.type !== "official") throw new Error("Conexão não encontrada ou tipo inválido");
+      const cfg = conn.config as Record<string, string>;
+      const result = await testOfficialConnection({
+        phoneNumberId: cfg.phoneNumberId ?? "",
+        accessToken: cfg.accessToken ?? "",
+      });
+      if (result.success) {
+        await db.updateWhatsappConnection(input.id, ctx.user.id, {
+          status: "connected",
+          phone: result.phone ?? "",
+        });
+      } else {
+        await db.updateWhatsappConnection(input.id, ctx.user.id, { status: "error" });
+      }
+      return result;
+    }),
+
+    // Connect unofficial (Evolution API) — creates instance and returns QR code
+    connectUnofficial: protectedProcedure.input(z.object({ id: z.number() })).mutation(async ({ ctx, input }) => {
+      const conn = await db.getWhatsappConnectionById(input.id, ctx.user.id);
+      if (!conn || conn.type !== "unofficial") throw new Error("Conexão não encontrada ou tipo inválido");
+      const cfg = conn.config as Record<string, string>;
+      const evoCfg = { serverUrl: cfg.serverUrl ?? "", apiKey: cfg.apiKey ?? "", instanceName: cfg.instanceName ?? "" };
+      // Create instance (idempotent)
+      await createEvolutionInstance(evoCfg);
+      // Fetch QR code
+      const qrResult = await getEvolutionQrCode(evoCfg);
+      if (qrResult.success && qrResult.qrCode) {
+        await db.updateWhatsappConnection(input.id, ctx.user.id, {
+          status: "connecting",
+          qrCode: qrResult.qrCode,
+        });
+        return { success: true, qrCode: qrResult.qrCode };
+      }
+      await db.updateWhatsappConnection(input.id, ctx.user.id, { status: "error" });
+      return { success: false, error: qrResult.error ?? "Falha ao gerar QR code" };
+    }),
+
+    // Poll connection state for unofficial (after QR scan)
+    pollState: protectedProcedure.input(z.object({ id: z.number() })).mutation(async ({ ctx, input }) => {
+      const conn = await db.getWhatsappConnectionById(input.id, ctx.user.id);
+      if (!conn || conn.type !== "unofficial") throw new Error("Conexão não encontrada");
+      const cfg = conn.config as Record<string, string>;
+      const evoCfg = { serverUrl: cfg.serverUrl ?? "", apiKey: cfg.apiKey ?? "", instanceName: cfg.instanceName ?? "" };
+      const state = await getEvolutionConnectionState(evoCfg);
+      if (state.success) {
+        await db.updateWhatsappConnection(input.id, ctx.user.id, {
+          status: "connected",
+          phone: state.phone ?? "",
+          qrCode: "",
+        });
+      }
+      return state;
+    }),
+
+    // Disconnect unofficial instance
+    disconnect: protectedProcedure.input(z.object({ id: z.number() })).mutation(async ({ ctx, input }) => {
+      const conn = await db.getWhatsappConnectionById(input.id, ctx.user.id);
+      if (!conn) throw new Error("Conexão não encontrada");
+      if (conn.type === "unofficial") {
+        const cfg = conn.config as Record<string, string>;
+        await disconnectEvolutionInstance({ serverUrl: cfg.serverUrl ?? "", apiKey: cfg.apiKey ?? "", instanceName: cfg.instanceName ?? "" });
+      }
+      await db.updateWhatsappConnection(input.id, ctx.user.id, { status: "disconnected", qrCode: "" });
       return { success: true };
     }),
   }),

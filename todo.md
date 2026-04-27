@@ -70,3 +70,46 @@
 - [x] UI: campo para adicionar nota manual no histórico
 - [x] UI: exibir metadados relevantes por tipo (nome do fluxo, conteúdo da mensagem, tags adicionadas)
 - [x] Vitest tests para getContactEvents e createContactEvent
+
+## Integração WhatsApp + Melhorias de Fluxo
+
+### WhatsApp Connections
+- [x] Schema: tabela whatsapp_connections (userId, name, type: official|unofficial, status, config JSON, createdAt)
+- [x] Backend: CRUD endpoints para connections (list, create, update, delete, testConnection)
+- [x] Backend: webhook handler para receber mensagens da Meta Cloud API
+- [x] Backend: webhook handler para Evolution API (não oficial)
+- [x] Backend: helper para enviar mensagem via Meta Cloud API
+- [x] Backend: helper para enviar mensagem via Evolution API
+- [x] UI: tela /app/connections com lista de conexões ativas
+- [x] UI: modal de nova conexão com seletor de tipo (Oficial / Não Oficial)
+- [x] UI: formulário Oficial: Phone Number ID, Token, Webhook Secret
+- [x] UI: formulário Não Oficial: URL do servidor Evolution, API Key, nome da instância
+- [x] UI: status visual de conexão (conectado, desconectado, aguardando QR)
+- [x] UI: QR Code para conexão não oficial (Evolution API)
+- [x] Sidebar: adicionar ícone de Conexões na navegação
+
+### Melhorias no Construtor de Fluxos
+- [x] Conectores exclusivos: cada saída só pode ter 1 conexão (remover a antiga ao criar nova)
+- [x] Deletar conexão: hover sobre a linha + botão × vermelho no meio
+- [x] Visual: linha fica vermelha ao hover
+- [x] Visual: botão × vermelho no meio da linha para deletar
+- [x] Visual: cursor pointer sobre as linhas de conexão
+- [x] Melhorar handles de conexão (pontos de saída/entrada mais visíveis, verde quando conectado)
+
+### Funcionalidades ZapData/Gerachat
+- [x] Nó de Condição: bifurcação Sim/Não com operadores configuráveis
+- [x] Nó de Identificar: capturar variável (nome, telefone, email, CPF, custom)
+- [x] Templates de mensagem com variáveis {{nome}}, {{telefone}}, {{email}}
+- [x] Hint de variáveis disponíveis no painel de config
+- [x] Nó de Webhook: POST para URL externa com método e body JSON configuráveis
+- [x] Contador de nós e conexões no toolbar do editor
+
+### Webhooks e Testes Finais
+- [x] Webhook handler Meta Cloud API: GET (verificação) + POST (mensagens recebidas)
+- [x] Webhook handler Evolution API: POST /api/webhook/evolution/:instanceName
+- [x] Registrar rotas de webhook no servidor Express
+- [x] Helper sendTextOfficial (Meta Cloud API)
+- [x] Helper sendTextUnofficial (Evolution API)
+- [x] Helper unificado sendMessage (official | unofficial)
+- [x] Vitest tests: send helpers, registerWebhookRoutes, Meta GET challenge, Meta GET rejeição
+- [x] 68 testes passando no total

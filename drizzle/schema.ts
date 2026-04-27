@@ -157,3 +157,39 @@ export const contactEvents = mysqlTable("contact_events", {
 
 export type ContactEvent = typeof contactEvents.$inferSelect;
 export type InsertContactEvent = typeof contactEvents.$inferInsert;
+
+// WhatsApp Connections — each user can have multiple channels
+export const whatsappConnections = mysqlTable("whatsapp_connections", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  /**
+   * type:
+   * - 'official'   : Meta Cloud API (requires Phone Number ID + permanent token)
+   * - 'unofficial' : Evolution API / Baileys (requires server URL + API key + instance name)
+   */
+  type: mysqlEnum("type", ["official", "unofficial"]).notNull(),
+  /**
+   * status:
+   * - 'disconnected' : not yet connected
+   * - 'connecting'   : QR code generated, waiting scan (unofficial only)
+   * - 'connected'    : active and receiving messages
+   * - 'error'        : last connection attempt failed
+   */
+  status: mysqlEnum("status", ["disconnected", "connecting", "connected", "error"]).default("disconnected").notNull(),
+  /**
+   * Encrypted/stored config per type:
+   * Official:   { phoneNumberId, accessToken, webhookSecret, businessAccountId }
+   * Unofficial: { serverUrl, apiKey, instanceName, webhookUrl }
+   */
+  config: json("config").$type<Record<string, string>>().default({}),
+  /** Last QR code string (base64 image) for unofficial connections */
+  qrCode: text("qrCode").default(""),
+  /** Phone number associated with this connection (populated after connect) */
+  phone: varchar("phone", { length: 32 }).default(""),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type WhatsappConnection = typeof whatsappConnections.$inferSelect;
+export type InsertWhatsappConnection = typeof whatsappConnections.$inferInsert;
