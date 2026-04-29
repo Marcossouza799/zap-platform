@@ -113,3 +113,27 @@
 - [x] Helper unificado sendMessage (official | unofficial)
 - [x] Vitest tests: send helpers, registerWebhookRoutes, Meta GET challenge, Meta GET rejeição
 - [x] 68 testes passando no total
+
+## Motor de Execução de Fluxos
+
+- [x] Schema: tabela flow_sessions (contactId, flowId, currentNodeId, variables JSON, status, createdAt, updatedAt)
+- [x] Schema: tabela flow_execution_logs (sessionId, nodeId, nodeType, input, output, status, createdAt)
+- [x] Backend: flowEngine.ts — processNode() para cada tipo de nó (text, audio, image, delay, buttons, condition, ai, pix, webhook, tag, identify, end)
+- [x] Backend: startFlow(contactId, flowId, connectionId) — iniciar sessão de fluxo para um contato
+- [x] Backend: resumeFlow(sessionId, inboundMessage) — retomar fluxo após resposta do contato (nós wait/identify/buttons)
+- [x] Backend: integrar engine ao webhookHandlers.ts — ao receber mensagem, verificar se contato tem sessão ativa e retomar, ou verificar triggers
+- [x] Backend: nó Trigger — ativar fluxo ao receber palavra-chave ou qualquer mensagem
+- [x] Backend: nó Text — enviar mensagem de texto com suporte a variáveis {{nome}}, {{telefone}}
+- [x] Backend: nó Delay — aguardar N segundos antes de prosseguir
+- [x] Backend: nó Buttons — enviar lista de opções e aguardar resposta do contato
+- [x] Backend: nó Condition — bifurcar baseado em variável ou tag do contato
+- [x] Backend: nó AI — chamar LLM e enviar resposta gerada
+- [x] Backend: nó Identify — aguardar resposta e salvar em variável (nome, telefone, email, custom)
+- [x] Backend: nó Tag — adicionar/remover tag do contato
+- [x] Backend: nó Webhook — fazer POST para URL externa
+- [x] Backend: nó End — encerrar sessão do fluxo
+- [x] Backend: endpoint sessions.list — listar sessões ativas por fluxo
+- [x] Backend: endpoint sessions.logs — logs de execução por sessão
+- [x] UI: página /app/monitor com sessões ativas, histórico e stats
+- [x] UI: sidebar com ícone Activity para Monitor de Execuções
+- [x] Vitest tests para flowEngine (sessions router, db helpers) — 78 testes passando

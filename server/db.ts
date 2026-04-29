@@ -12,6 +12,8 @@ import {
   flowDispatches, InsertFlowDispatch,
   contactEvents, InsertContactEvent,
   whatsappConnections, InsertWhatsappConnection,
+  flowSessions, FlowSession,
+  flowExecutionLogs,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -416,6 +418,55 @@ export async function deleteWhatsappConnection(id: number, userId: number) {
   if (!db) return;
   await db.delete(whatsappConnections)
     .where(and(eq(whatsappConnections.id, id), eq(whatsappConnections.userId, userId)));
+}
+
+// ---- Flow Sessions ----
+export async function listFlowSessions(userId: number, flowId?: number, limit = 50) {
+  const db = await getDb();
+  if (!db) return [];
+  const conditions = flowId
+    ? and(eq(flowSessions.userId, userId), eq(flowSessions.flowId, flowId))
+    : eq(flowSessions.userId, userId);
+  return db
+    .select()
+    .from(flowSessions)
+    .where(conditions)
+    .orderBy(desc(flowSessions.createdAt))
+    .limit(limit);
+}
+
+export async function getSessionLogs(sessionId: number, userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  // Verify ownership via session
+  const session = await db
+    .select({ id: flowSessions.id })
+    .from(flowSessions)
+    .where(and(eq(flowSessions.id, sessionId), eq(flowSessions.userId, userId)))
+    .limit(1);
+  if (!session[0]) return [];
+  return db
+    .select()
+    .from(flowExecutionLogs)
+    .where(eq(flowExecutionLogs.sessionId, sessionId))
+    .orderBy(asc(flowExecutionLogs.createdAt));
+}
+
+export async function getSessionStats(userId: number) {
+  const db = await getDb();
+  if (!db) return { active: 0, waiting: 0, completed: 0, error: 0, total: 0 };
+  const rows = await db
+    .select({ status: flowSessions.status, count: sql<number>`count(*)` })
+    .from(flowSessions)
+    .where(eq(flowSessions.userId, userId))
+    .groupBy(flowSessions.status);
+  const stats = { active: 0, waiting: 0, completed: 0, error: 0, total: 0 };
+  for (const row of rows) {
+    const s = row.status as keyof typeof stats;
+    if (s in stats) stats[s] = Number(row.count);
+    stats.total += Number(row.count);
+  }
+  return stats;
 }
 
 // ---- Dashboard Stats ----

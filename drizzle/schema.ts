@@ -193,3 +193,35 @@ export const whatsappConnections = mysqlTable("whatsapp_connections", {
 
 export type WhatsappConnection = typeof whatsappConnections.$inferSelect;
 export type InsertWhatsappConnection = typeof whatsappConnections.$inferInsert;
+
+// Flow Sessions — tracks each contact's progress through a flow
+export const flowSessions = mysqlTable("flow_sessions", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  flowId: int("flowId").notNull(),
+  contactId: int("contactId").notNull(),
+  connectionId: int("connectionId").notNull(),
+  /** nodeId of the node currently waiting for input (null = processing) */
+  currentNodeId: varchar("currentNodeId", { length: 64 }).default(""),
+  /** JSON object of collected variables: { nome: "João", telefone: "...", ... } */
+  variables: json("variables").$type<Record<string, string>>().default({}),
+  status: mysqlEnum("status", ["active", "waiting", "completed", "error"]).default("active").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type FlowSession = typeof flowSessions.$inferSelect;
+export type InsertFlowSession = typeof flowSessions.$inferInsert;
+
+// Flow Execution Logs — per-node execution record
+export const flowExecutionLogs = mysqlTable("flow_execution_logs", {
+  id: int("id").autoincrement().primaryKey(),
+  sessionId: int("sessionId").notNull(),
+  nodeId: varchar("nodeId", { length: 64 }).notNull(),
+  nodeType: varchar("nodeType", { length: 64 }).notNull(),
+  input: text("input").default(""),
+  output: text("output").default(""),
+  status: mysqlEnum("status", ["ok", "error", "waiting"]).default("ok").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type FlowExecutionLog = typeof flowExecutionLogs.$inferSelect;
+export type InsertFlowExecutionLog = typeof flowExecutionLogs.$inferInsert;

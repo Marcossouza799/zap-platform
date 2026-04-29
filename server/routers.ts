@@ -13,6 +13,7 @@ import {
   getEvolutionConnectionState,
   disconnectEvolutionInstance,
 } from "./whatsapp";
+import { startFlow } from "./flowEngine";
 
 export const appRouter = router({
   system: systemRouter,
@@ -502,6 +503,30 @@ export const appRouter = router({
       return { success: true };
     }),
   }),
+  // ─── Flow Sessions (monitoring) ───────────────────────────────────────────
+  sessions: router({
+    // List all sessions for the current user (optionally filtered by flowId)
+    list: protectedProcedure
+      .input(z.object({ flowId: z.number().optional(), limit: z.number().optional() }))
+      .query(async ({ ctx, input }) => {
+        return db.listFlowSessions(ctx.user.id, input.flowId, input.limit ?? 50);
+      }),
+    // Get execution logs for a specific session
+    logs: protectedProcedure
+      .input(z.object({ sessionId: z.number() }))
+      .query(async ({ ctx, input }) => {
+        return db.getSessionLogs(input.sessionId, ctx.user.id);
+      }),
+    // Manually start a flow for a contact (for testing)
+    start: protectedProcedure
+      .input(z.object({ contactId: z.number(), flowId: z.number(), connectionId: z.number() }))
+      .mutation(async ({ input }) => {
+        return startFlow(input.contactId, input.flowId, input.connectionId, "manual_trigger");
+      }),
+    // Get stats: active, waiting, completed, error counts
+    stats: protectedProcedure.query(async ({ ctx }) => {
+      return db.getSessionStats(ctx.user.id);
+    }),
+  }),
 });
-
 export type AppRouter = typeof appRouter;

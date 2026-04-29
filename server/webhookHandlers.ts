@@ -5,15 +5,17 @@
  *   - Meta Cloud API  (official)  → GET /api/webhook/meta  (verification) + POST /api/webhook/meta
  *   - Evolution API   (unofficial) → POST /api/webhook/evolution/:instanceName
  *
- * Both handlers persist inbound messages to the `messages` table and
- * create a contact_event of type "message" for the sender.
+ * On each inbound message:
+ *   1. Persist the message and upsert the contact.
+ *   2. Check if the contact has an active (waiting) flow session → resumeFlow().
+ *   3. Otherwise, check if any active flow matches the trigger keyword → startFlow().
  */
 
 import type { Express, Request, Response } from "express";
 import { getDb } from "./db";
 import { messages, contacts, contactEvents, whatsappConnections } from "../drizzle/schema";
 import { eq, and } from "drizzle-orm";
-import { verifyMetaWebhook } from "./whatsapp";
+import { startFlow, resumeFlow, getActiveSession, findMatchingFlow } from "./flowEngine";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
@@ -27,7 +29,6 @@ async function upsertContactByPhone(
   name?: string
 ): Promise<number | null> {
   if (!db) return null;
-  // Try to find existing contact
   const existing = await db
     .select({ id: contacts.id })
     .from(contacts)
@@ -36,7 +37,6 @@ async function upsertContactByPhone(
 
   if (existing.length > 0) return existing[0].id;
 
-  // Create new contact
   const result = await db.insert(contacts).values({
     userId,
     name: name ?? phone,
@@ -58,7 +58,6 @@ async function persistInboundMessage(
   const db = await getDb();
   if (!db) return;
 
-  // Save message
   await db.insert(messages).values({
     userId,
     contactId: contactId ?? 0,
@@ -66,7 +65,6 @@ async function persistInboundMessage(
     content: text,
   });
 
-  // Save contact event
   if (contactId) {
     await (db.insert(contactEvents) as any).values({
       contactId,
@@ -76,6 +74,47 @@ async function persistInboundMessage(
       description: text.length > 120 ? text.slice(0, 120) + "…" : text,
       metadata: { source: connectionName, from },
     });
+  }
+}
+
+/**
+ * Core inbound message handler — called by both Meta and Evolution handlers.
+ * Runs the flow engine logic after persisting the message.
+ */
+async function handleInboundMessage(
+  userId: number,
+  connectionId: number,
+  connectionName: string,
+  from: string,
+  text: string
+) {
+  const db = await getDb();
+  if (!db) return;
+
+  // 1. Upsert contact
+  const contactId = await upsertContactByPhone(db, userId, from);
+
+  // 2. Persist message
+  await persistInboundMessage(userId, contactId, from, text, connectionName);
+
+  if (!contactId) return;
+
+  // 3. Check for active (waiting) session
+  const activeSession = await getActiveSession(contactId);
+  if (activeSession) {
+    // Resume the waiting flow
+    await resumeFlow(activeSession.id, text).catch((err) =>
+      console.error("[FlowEngine] resumeFlow error:", err)
+    );
+    return;
+  }
+
+  // 4. Check if any active flow matches the trigger
+  const match = await findMatchingFlow(userId, text);
+  if (match) {
+    await startFlow(contactId, match.flowId, connectionId, text).catch((err) =>
+      console.error("[FlowEngine] startFlow error:", err)
+    );
   }
 }
 
@@ -91,8 +130,6 @@ function registerMetaWebhook(app: Express) {
     const challenge = req.query["hub.challenge"] as string | undefined;
 
     if (mode === "subscribe" && token && challenge) {
-      // We accept any verify_token — the user configures it in their Meta App
-      // and stores it in the connection config. For simplicity we echo the challenge.
       res.status(200).send(challenge);
     } else {
       res.sendStatus(403);
@@ -103,8 +140,7 @@ function registerMetaWebhook(app: Express) {
   app.post("/api/webhook/meta", async (req: Request, res: Response) => {
     try {
       const body = req.body as any;
-      // Always acknowledge immediately
-      res.sendStatus(200);
+      res.sendStatus(200); // Always acknowledge immediately
 
       if (body?.object !== "whatsapp_business_account") return;
 
@@ -135,8 +171,7 @@ function registerMetaWebhook(app: Express) {
             const text: string = msg.text?.body ?? "";
             if (!from || !text) continue;
 
-            const contactId = await upsertContactByPhone(db, conn.userId, from);
-            await persistInboundMessage(conn.userId, contactId, from, text, conn.name);
+            await handleInboundMessage(conn.userId, conn.id, conn.name, from, text);
           }
         }
       }
@@ -151,10 +186,6 @@ function registerMetaWebhook(app: Express) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function registerEvolutionWebhook(app: Express) {
-  /**
-   * Evolution API sends POST to /api/webhook/evolution/:instanceName
-   * Payload: { event: "messages.upsert", data: { key: { remoteJid, fromMe }, message: { conversation } } }
-   */
   app.post("/api/webhook/evolution/:instanceName", async (req: Request, res: Response) => {
     try {
       res.sendStatus(200);
@@ -162,7 +193,6 @@ function registerEvolutionWebhook(app: Express) {
       const instanceName = req.params.instanceName;
       const body = req.body as any;
 
-      // Only handle inbound messages (not sent by us)
       if (body?.event !== "messages.upsert") return;
       const msgData = body?.data;
       if (!msgData || msgData?.key?.fromMe) return;
@@ -178,7 +208,6 @@ function registerEvolutionWebhook(app: Express) {
       const db = await getDb();
       if (!db) return;
 
-      // Find the connection by instanceName
       const conns = await db
         .select()
         .from(whatsappConnections)
@@ -191,8 +220,7 @@ function registerEvolutionWebhook(app: Express) {
 
       if (!conn) return;
 
-      const contactId = await upsertContactByPhone(db, conn.userId, from);
-      await persistInboundMessage(conn.userId, contactId, from, text, conn.name);
+      await handleInboundMessage(conn.userId, conn.id, conn.name, from, text);
     } catch (err) {
       console.error("[Evolution Webhook] Error:", err);
     }

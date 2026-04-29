@@ -13,6 +13,7 @@ import Kanban from "./pages/Kanban";
 import Inbox from "./pages/Inbox";
 import Settings from "./pages/Settings";
 import Connections from "./pages/Connections";
+import FlowMonitor from "./pages/FlowMonitor";
 import AppLayout from "./components/AppLayout";
 
 function Router() {
@@ -26,6 +27,7 @@ function Router() {
       <Route path="/app/flows/:id" component={({ params }) => <AppLayout><FlowEditor flowId={Number(params.id)} /></AppLayout>} />
       <Route path="/app/kanban" component={() => <AppLayout><Kanban /></AppLayout>} />
       <Route path="/app/connections" component={() => <AppLayout><Connections /></AppLayout>} />
+      <Route path="/app/monitor" component={() => <AppLayout><FlowMonitor /></AppLayout>} />
       <Route path="/app/settings" component={() => <AppLayout><Settings /></AppLayout>} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
