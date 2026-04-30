@@ -672,7 +672,7 @@ function NodeConfig({ node, onUpdate, onUpdateOutputs, onDelete }: {
     </div>
   );
 
-  const varHint = <p style={{ fontSize: 9, color: "#252838", marginTop: 2 }}>Variáveis: {"{{nome}}"} {"{{telefone}}"} {"{{email}}"}</p>;
+  const varHint = <p key="var-hint" style={{ fontSize: 9, color: "#252838", marginTop: 2 }}>Variáveis: {"{{nome}}"} {"{{telefone}}"} {"{{email}}"}</p>;
 
   let fields: React.ReactNode[] = [];
   fields.push(fi("Rótulo do nó", "_lbl", "Nome..."));
