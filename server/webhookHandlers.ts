@@ -16,6 +16,7 @@ import { getDb } from "./db";
 import { messages, contacts, contactEvents, whatsappConnections } from "../drizzle/schema";
 import { eq, and } from "drizzle-orm";
 import { startFlow, resumeFlow, getActiveSession, findMatchingFlow } from "./flowEngine";
+import { ENV } from "./_core/env";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
@@ -227,11 +228,54 @@ function registerEvolutionWebhook(app: Express) {
   });
 }
 
+/// ─────────────────────────────────────────────────────────────────────────────
+// Public Webhook Info & Status Endpoints
+// ─────────────────────────────────────────────────────────────────────────────
+function registerPublicWebhookEndpoints(app: Express) {
+  /**
+   * GET /api/webhook/info
+   * Returns public webhook URL and verification token for frontend to display during setup
+   */
+  app.get("/api/webhook/info", (req: Request, res: Response) => {
+    const webhookUrl = `${ENV.publicUrl}/api/webhook/meta`;
+    const verificationToken = ENV.webhookToken;
+    res.json({
+      success: true,
+      webhookUrl,
+      verificationToken,
+      platforms: {
+        meta: {
+          webhookUrl,
+          verificationToken,
+          description: "Meta Cloud API webhook URL",
+        },
+        evolution: {
+          baseUrl: `${ENV.publicUrl}/api/webhook/evolution`,
+          description: "Evolution API webhook base URL (append /:instanceName)",
+        },
+      },
+    });
+  });
+
+  /**
+   * GET /api/webhook/status
+   * Health check endpoint for Meta Cloud API to verify webhook availability
+   */
+  app.get("/api/webhook/status", (req: Request, res: Response) => {
+    res.json({
+      success: true,
+      status: "healthy",
+      timestamp: new Date().toISOString(),
+      version: "1.0",
+    });
+  });
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Register all webhook routes
 // ─────────────────────────────────────────────────────────────────────────────
-
 export function registerWebhookRoutes(app: Express) {
+  registerPublicWebhookEndpoints(app);
   registerMetaWebhook(app);
   registerEvolutionWebhook(app);
 }

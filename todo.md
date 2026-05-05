@@ -137,3 +137,41 @@
 - [x] UI: página /app/monitor com sessões ativas, histórico e stats
 - [x] UI: sidebar com ícone Activity para Monitor de Execuções
 - [x] Vitest tests para flowEngine (sessions router, db helpers) — 78 testes passando
+
+## Publication Feature (Fase 2 - Webhook Público + Onboarding)
+
+### Webhook Público Verificável
+- [x] Endpoint público GET /api/webhook/info — retorna URL pública do webhook e token de verificação
+- [x] Endpoint público GET /api/webhook/status — health check para Meta Cloud API verificar disponibilidade
+- [x] tRPC procedure connections.getWebhookInfo — retorna URL pública e token para o frontend
+- [x] Melhorar verificação Meta Cloud API: validar token de verificação com segurança
+- [x] Melhorar verificação Evolution API: adicionar validação de headers customizados
+- [x] Vitest tests para endpoints públicos de webhook
+
+### Onboarding Guiado de Conexão WhatsApp
+- [x] Tela /app/connections/setup com checklist passo a passo
+- [x] Etapa 1: Escolher tipo de conexão (Oficial Meta / Não Oficial Evolution)
+- [x] Etapa 2: Preencher credenciais (Phone Number ID + Token para Meta, ou URL + API Key para Evolution)
+- [x] Etapa 3: Configurar webhook — exibir URL pública e instruções para registrar na Meta/Evolution
+- [x] Etapa 4: Testar conexão — botão "Testar Agora" com feedback em tempo real
+- [x] Etapa 5: Confirmação de sucesso com próximas ações
+- [x] Componente WebhookSetupGuide com instruções visuais para cada plataforma
+- [x] Vitest tests para componentes de onboarding
+
+### Live Test Panel (Teste ao Vivo)
+- [x] Tela /app/test-flow com painel de teste de fluxo em tempo real
+- [x] Seletor de fluxo + contato (ou criar contato de teste)
+- [x] Seletor de conexão WhatsApp para usar no teste
+- [x] Botão "Iniciar Teste" que dispara o fluxo
+- [x] Log em tempo real de execução (nó atual, variáveis, entrada/saída)
+- [x] Chat simulado para responder a nós de espera (buttons, identify)
+- [x] Visualização de mensagens que seriam enviadas via WhatsApp
+- [x] Vitest tests para componentes de live test
+
+### Validação End-to-End
+- [x] Testar fluxo com Meta Cloud API real (enviar mensagem real)
+- [x] Testar fluxo com Evolution API real (enviar mensagem real)
+- [x] Verificar webhook recebe mensagens de entrada corretamente
+- [x] Verificar resumeFlow funciona ao receber resposta do contato
+- [x] Verificar variáveis são capturadas e usadas corretamente
+- [x] Vitest tests para integração end-to-end

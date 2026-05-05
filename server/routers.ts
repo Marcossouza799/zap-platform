@@ -502,6 +502,26 @@ export const appRouter = router({
       await db.updateWhatsappConnection(input.id, ctx.user.id, { status: "disconnected", qrCode: "" });
       return { success: true };
     }),
+    // Get webhook info for setup (public URL and verification token)
+    getWebhookInfo: protectedProcedure.query(async () => {
+      const { ENV } = await import("./_core/env");
+      return {
+        success: true,
+        webhookUrl: `${ENV.publicUrl}/api/webhook/meta`,
+        verificationToken: ENV.webhookToken,
+        platforms: {
+          meta: {
+            webhookUrl: `${ENV.publicUrl}/api/webhook/meta`,
+            verificationToken: ENV.webhookToken,
+            description: "Meta Cloud API webhook URL",
+          },
+          evolution: {
+            baseUrl: `${ENV.publicUrl}/api/webhook/evolution`,
+            description: "Evolution API webhook base URL (append /:instanceName)",
+          },
+        },
+      };
+    }),
   }),
   // ─── Flow Sessions (monitoring) ───────────────────────────────────────────
   sessions: router({

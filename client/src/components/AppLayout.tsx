@@ -12,6 +12,7 @@ import {
   Loader2,
   Smartphone,
   Activity,
+  Zap,
 } from "lucide-react";
 import { ReactNode } from "react";
 import {
@@ -31,6 +32,7 @@ const navItems2 = [
   { icon: Columns3, label: "CRM Kanban", path: "/app/kanban" },
   { icon: Smartphone, label: "Conexões WhatsApp", path: "/app/connections" },
   { icon: Activity, label: "Monitor de Execuções", path: "/app/monitor" },
+  { icon: Zap, label: "Teste ao Vivo", path: "/app/test-flow" },
 ];
 
 const navItems3 = [
