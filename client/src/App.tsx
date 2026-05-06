@@ -6,8 +6,10 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
 import Dashboard from "./pages/Dashboard";
-import Contacts from "./pages/Contacts";
-import FlowEditor from "./pages/FlowEditor";
+import Contacts from "./pages/ContactsEnhanced";
+import LiveChat from "./pages/LiveChat";
+import TagsManager from "./pages/TagsManager";
+import FlowEditor from "./pages/FlowEditorEnhanced";
 import FlowList from "./pages/FlowList";
 import Kanban from "./pages/Kanban";
 import Inbox from "./pages/Inbox";
@@ -25,6 +27,8 @@ function Router() {
       <Route path="/app" component={() => <AppLayout><Dashboard /></AppLayout>} />
       <Route path="/app/inbox" component={() => <AppLayout><Inbox /></AppLayout>} />
       <Route path="/app/contacts" component={() => <AppLayout><Contacts /></AppLayout>} />
+      <Route path="/app/live-chat" component={() => <AppLayout><LiveChat /></AppLayout>} />
+      <Route path="/app/tags" component={() => <AppLayout><TagsManager /></AppLayout>} />
       <Route path="/app/flows" component={() => <AppLayout><FlowList /></AppLayout>} />
       <Route path="/app/flows/:id" component={({ params }) => <AppLayout><FlowEditor flowId={Number(params.id)} /></AppLayout>} />
       <Route path="/app/kanban" component={() => <AppLayout><Kanban /></AppLayout>} />

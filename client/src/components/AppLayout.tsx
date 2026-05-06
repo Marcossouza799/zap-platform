@@ -13,6 +13,8 @@ import {
   Smartphone,
   Activity,
   Zap,
+  MessageCircle,
+  Tag,
 } from "lucide-react";
 import { ReactNode } from "react";
 import {
@@ -24,6 +26,7 @@ import {
 const navItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/app" },
   { icon: MessageSquare, label: "Inbox + IA", path: "/app/inbox" },
+  { icon: MessageCircle, label: "Chat ao Vivo", path: "/app/live-chat" },
   { icon: Users, label: "Contatos", path: "/app/contacts" },
 ];
 
@@ -36,6 +39,7 @@ const navItems2 = [
 ];
 
 const navItems3 = [
+  { icon: Tag, label: "Etiquetas", path: "/app/tags" },
   { icon: Settings, label: "Configurações", path: "/app/settings" },
 ];
 

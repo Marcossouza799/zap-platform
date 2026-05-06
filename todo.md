@@ -175,3 +175,41 @@
 - [x] Verificar resumeFlow funciona ao receber resposta do contato
 - [x] Verificar variáveis são capturadas e usadas corretamente
 - [x] Vitest tests para integração end-to-end
+
+
+## UI/UX Improvements (Fase 3 - Expansão)
+
+### Painel de Criação de Fluxos Expansível
+- [x] Implementar zoom +/- com botões e atalhos (Ctrl+/Ctrl-)
+- [x] Adicionar pan (arrastar canvas) com mouse/trackpad
+- [x] Responsividade para fluxos grandes (horizontal scroll, minimap)
+- [x] Botão de "Fit to Screen" para ajustar zoom automaticamente
+- [ ] Salvar preferência de zoom do usuário
+- [ ] Vitest tests para zoom/pan functionality
+
+### Gerenciamento de Contatos
+- [x] Botão "Apagar Selecionados" na lista de contatos
+- [x] Botão "Selecionar Todos" com toggle visual
+- [x] Confirmação de exclusão com modal
+- [x] Feedback visual de seleção múltipla (checkboxes)
+- [x] Integração com tRPC para deletar contatos
+- [ ] Vitest tests para seleção e exclusão
+
+### Chat ao Vivo (WhatsApp Web)
+- [x] Aba "Chat ao Vivo" no Inbox com integração WhatsApp Web
+- [x] Listagem de conversas ativas em tempo real
+- [x] Visualização de mensagens com timestamps
+- [x] Botão "Pausar Fluxo" para conversa selecionada
+- [x] Botão "Enviar Fluxo" com seletor de fluxo disponível
+- [x] Aplicar etiquetas a conversas do chat
+- [ ] Vitest tests para chat ao vivo
+
+### Sistema de Etiquetas
+- [x] Tela de gerenciamento de etiquetas em Settings
+- [x] Criar nova etiqueta (nome + cor)
+- [x] Editar etiqueta (nome + cor)
+- [x] Deletar etiqueta com confirmação
+- [x] Listar etiquetas com contagem de uso
+- [x] Aplicar etiqueta a contatos/conversas
+- [x] Filtrar por etiqueta
+- [ ] Vitest tests para CRUD de etiquetas
