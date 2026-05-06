@@ -213,3 +213,15 @@
 - [x] Aplicar etiqueta a contatos/conversas
 - [x] Filtrar por etiqueta
 - [ ] Vitest tests para CRUD de etiquetas
+
+
+## Drag and Drop Feature (Fase 5 - Nova)
+
+### Reorganização de Elementos do Fluxo
+- [x] Hook useDragDrop para gerenciar estado de arrastar/soltar
+- [x] Componente FlowNode com suporte a drag (cursor, hover visual)
+- [x] Drop zones no canvas para reordenação
+- [x] Animações durante drag (opacity, scale)
+- [x] Reordenação de nós no fluxo
+- [x] Persistência da nova ordem no banco (localStorage)
+- [ ] Vitest tests para drag and drop

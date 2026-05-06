@@ -9,6 +9,7 @@ import Dashboard from "./pages/Dashboard";
 import Contacts from "./pages/ContactsEnhanced";
 import LiveChat from "./pages/LiveChat";
 import TagsManager from "./pages/TagsManager";
+import FlowEditorWithDragDrop from "./pages/FlowEditorWithDragDrop";
 import FlowEditor from "./pages/FlowEditorEnhanced";
 import FlowList from "./pages/FlowList";
 import Kanban from "./pages/Kanban";
@@ -31,6 +32,7 @@ function Router() {
       <Route path="/app/tags" component={() => <AppLayout><TagsManager /></AppLayout>} />
       <Route path="/app/flows" component={() => <AppLayout><FlowList /></AppLayout>} />
       <Route path="/app/flows/:id" component={({ params }) => <AppLayout><FlowEditor flowId={Number(params.id)} /></AppLayout>} />
+      <Route path="/app/flows/:id/edit-drag" component={() => <AppLayout><FlowEditorWithDragDrop /></AppLayout>} />
       <Route path="/app/kanban" component={() => <AppLayout><Kanban /></AppLayout>} />
       <Route path="/app/connections/setup/:type" component={({ params }) => <AppLayout><ConnectionSetup type={params.type} /></AppLayout>} />
       <Route path="/app/connections" component={() => <AppLayout><Connections /></AppLayout>} />
