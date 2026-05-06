@@ -40,6 +40,7 @@ const navItems2 = [
 
 const navItems3 = [
   { icon: Tag, label: "Etiquetas", path: "/app/tags" },
+  { icon: Smartphone, label: "WhatsApp Web", path: "/app/whatsapp-web-setup" },
   { icon: Settings, label: "Configurações", path: "/app/settings" },
 ];
 

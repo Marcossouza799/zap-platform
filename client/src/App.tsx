@@ -10,6 +10,7 @@ import Contacts from "./pages/ContactsEnhanced";
 import LiveChat from "./pages/LiveChat";
 import TagsManager from "./pages/TagsManager";
 import FlowEditorWithDragDrop from "./pages/FlowEditorWithDragDrop";
+import WhatsAppWebSetup from "./pages/WhatsAppWebSetup";
 import FlowEditor from "./pages/FlowEditorEnhanced";
 import FlowList from "./pages/FlowList";
 import Kanban from "./pages/Kanban";
@@ -30,6 +31,7 @@ function Router() {
       <Route path="/app/contacts" component={() => <AppLayout><Contacts /></AppLayout>} />
       <Route path="/app/live-chat" component={() => <AppLayout><LiveChat /></AppLayout>} />
       <Route path="/app/tags" component={() => <AppLayout><TagsManager /></AppLayout>} />
+      <Route path="/app/whatsapp-web-setup" component={() => <AppLayout><WhatsAppWebSetup /></AppLayout>} />
       <Route path="/app/flows" component={() => <AppLayout><FlowList /></AppLayout>} />
       <Route path="/app/flows/:id" component={({ params }) => <AppLayout><FlowEditor flowId={Number(params.id)} /></AppLayout>} />
       <Route path="/app/flows/:id/edit-drag" component={() => <AppLayout><FlowEditorWithDragDrop /></AppLayout>} />

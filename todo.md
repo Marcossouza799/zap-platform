@@ -225,3 +225,39 @@
 - [x] Reordenação de nós no fluxo
 - [x] Persistência da nova ordem no banco (localStorage)
 - [ ] Vitest tests para drag and drop
+
+
+## Drag and Drop Melhorado (Fase 1 - Integração)
+
+- [ ] Integrar FlowEditorWithDragDrop no editor principal (/app/flows/:id)
+- [ ] Mover drop zones para o hook useDragDrop
+- [ ] Conectar visual de hover/drop do nó ao estado real
+- [ ] Persistir ordem dos nós no backend/banco
+- [ ] Vitest tests para reordenação via drag and drop
+
+## Exportar/Importar Fluxos (Fase 2)
+
+- [x] Botão "Exportar Fluxo" que gera JSON com metadados
+- [x] Botão "Importar Fluxo" com upload de arquivo JSON
+- [x] Validação de estrutura ao importar
+- [x] Compartilhamento via link (gerar código único)
+- [x] Visualizar fluxo compartilhado antes de importar
+- [ ] Vitest tests para export/import
+
+## Conexão WhatsApp Web (Fase 3)
+
+- [x] Página de configuração WhatsApp Web (/app/whatsapp-web-setup)
+- [x] QR code scanner para autenticação
+- [x] Gerenciamento de sessão (conectado/desconectado)
+- [x] Sincronização de contatos do WhatsApp Web
+- [ ] Webhook para mensagens recebidas
+- [ ] Vitest tests para WhatsApp Web integration
+
+## Debug e Correção de Erros (Fase 4)
+
+- [x] Painel de debug de fluxos com log detalhado
+- [x] Validação de nós (tipos, campos obrigatórios)
+- [x] Detecção de loops infinitos
+- [x] Sugestões de correção automática
+- [x] Teste de fluxo com dados simulados
+- [ ] Vitest tests para validação
